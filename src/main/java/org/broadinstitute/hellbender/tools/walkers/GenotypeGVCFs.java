@@ -142,6 +142,12 @@ public final class GenotypeGVCFs extends VariantWalker {
         return Arrays.asList(StandardAnnotation.class);
     }
 
+
+    @Override
+    protected int getVariantCacheLookAheadBases() {
+        return 1000;
+    }
+
     @Override
     public void onTraversalStart() {
         final VCFHeader inputVCFHeader = getHeaderForVariants();
