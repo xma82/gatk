@@ -253,6 +253,7 @@ public final class FeatureDataSource<T extends Feature> implements GATKDataSourc
      * @param cloudPrefetchBuffer  MB size of caching/prefetching wrapper for the data, if on Google Cloud (0 to disable).
      * @param cloudIndexPrefetchBuffer MB size of caching/prefetching wrapper for the index, if on Google Cloud (0 to disable).
      * @param reference Path to a reference. May be null. Needed only for reading from GenomicsDB.
+     * @param doGnarlyGenotyping indicates whether the GenomicsDB export configuration should be modified for the GnarlyGenotyper
      */
     public FeatureDataSource(final FeatureInput<T> featureInput, final int queryLookaheadBases, final Class<? extends Feature> targetFeatureType,
                              final int cloudPrefetchBuffer, final int cloudIndexPrefetchBuffer, final Path reference, final boolean doGnarlyGenotyping) {
