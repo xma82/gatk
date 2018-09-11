@@ -72,7 +72,7 @@ public class ReadOrientationArtifact extends GenotypeAnnotation implements Orien
             return;
         }
 
-        final double[] tumorLods = GATKProtectedVariantContextUtils.getAttributeAsDoubleArray(vc, GATKVCFConstants.TUMOR_LOD_KEY, () -> null, -1);
+        final double[] tumorLods = GATKProtectedVariantContextUtils.getAttributeAsDoubleArray(vc, GATKVCFConstants.LOD_KEY, () -> null, -1);
         final int indexOfMaxTumorLod = MathUtils.maxElementIndex(tumorLods);
         final Allele altAllele = vc.getAlternateAllele(indexOfMaxTumorLod);
         final Nucleotide altBase = Nucleotide.valueOf(altAllele.toString());

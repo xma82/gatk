@@ -35,7 +35,7 @@ public class StrandArtifactUnitTest extends GATKBaseTest {
     final List<Allele> alleles = Arrays.asList(Allele.create((byte) 'C', true), Allele.create((byte) 'A', false));
     final AlleleList<Allele> alleleList = new IndexedAlleleList<>(alleles);
     final VariantContext vc = new VariantContextBuilder("source", Integer.toString(chromosomeIndex), variantSite, variantSite, alleles)
-            .attribute(GATKVCFConstants.TUMOR_LOD_KEY, new double[]{ 6.4 }).make();
+            .attribute(GATKVCFConstants.LOD_KEY, new double[]{ 6.4 }).make();
 
     final String sampleName = "SamThreetree";
     final SampleList sampleList = new IndexedSampleList(sampleName);
@@ -201,7 +201,7 @@ public class StrandArtifactUnitTest extends GATKBaseTest {
     public void testMissingTumorLod() throws IOException {
         final ReadLikelihoods<Allele> likelihoods = ArtificialAnnotationUtils.makeLikelihoods(sampleName, Collections.singletonList(ArtificialAnnotationUtils.makeRead(100, 100)), 100, Allele.create((byte) 'C', true),   Allele.create((byte) 'A', false));
         
-        VariantContext variantContextNoTLOD = new VariantContextBuilder(vc).rmAttribute(GATKVCFConstants.TUMOR_LOD_KEY).make();
+        VariantContext variantContextNoTLOD = new VariantContextBuilder(vc).rmAttribute(GATKVCFConstants.LOD_KEY).make();
 
         final StrandArtifact strandArtifactAnnotation = new StrandArtifact();
         final GenotypeBuilder genotypeBuilder = new GenotypeBuilder(sampleName);

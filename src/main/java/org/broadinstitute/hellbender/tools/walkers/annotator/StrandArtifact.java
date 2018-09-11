@@ -82,15 +82,15 @@ public class StrandArtifact extends GenotypeAnnotation implements StandardMutect
         pi.put(ART_FWD, PRIOR_PROBABILITY_OF_ARTIFACT);
         pi.put(ART_REV, PRIOR_PROBABILITY_OF_ARTIFACT);
 
-        // We use the allele with highest LOD score
-        final double[] tumorLods = GATKProtectedVariantContextUtils.getAttributeAsDoubleArray(vc, GATKVCFConstants.TUMOR_LOD_KEY, () -> null, -1);
+        // We use the allele with highest log odds score
+        final double[] lods = GATKProtectedVariantContextUtils.getAttributeAsDoubleArray(vc, GATKVCFConstants.LOD_KEY, () -> null, -1);
 
-        if (tumorLods==null) {
-            warning.warn("One or more variant contexts is missing the 'TLOD' annotation, StrandArtifact will not be computed for these VariantContexts");
+        if (lods==null) {
+            warning.warn("One or more variant contexts is missing the 'LOD' annotation, StrandArtifact will not be computed for these VariantContexts");
             return;
         }
-        final int indexOfMaxTumorLod = MathUtils.maxElementIndex(tumorLods);
-        final Allele altAllele = vc.getAlternateAllele(indexOfMaxTumorLod);
+        final int indexOfMaxLod = MathUtils.maxElementIndex(lods);
+        final Allele altAllele = vc.getAlternateAllele(indexOfMaxLod);
 
         final Collection<ReadLikelihoods<Allele>.BestAllele> informativeBestAlleles = likelihoods.bestAllelesBreakingTies(g.getSampleName()).stream().
                 filter(ba -> ba.isInformative()).collect(Collectors.toList());

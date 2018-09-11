@@ -125,7 +125,7 @@ public class SomaticGenotypingEngine extends AssemblyBasedCallerGenotypingEngine
             final Set<Allele> forcedAlleles = getAllelesConsistentWithGivenAlleles(givenAlleles, loc, mergedVC);
 
             final List<Allele> tumorAltAlleles = mergedVC.getAlternateAlleles().stream()
-                    .filter(allele -> forcedAlleles.contains(allele) || tumorLog10Odds.getAlt(allele) > MTAC.emissionLod)
+                    .filter(allele -> forcedAlleles.contains(allele) || tumorLog10Odds.getAlt(allele) > MTAC.getEmissionLod())
                     .collect(Collectors.toList());
 
             final long somaticAltCount = tumorAltAlleles.stream()
@@ -151,7 +151,7 @@ public class SomaticGenotypingEngine extends AssemblyBasedCallerGenotypingEngine
             final VariantContextBuilder callVcb = new VariantContextBuilder(mergedVC)
                     .alleles(allAllelesToEmit)
                     .attributes(populationAFAnnotation)
-                    .attribute(GATKVCFConstants.TUMOR_LOD_KEY, tumorAltAlleles.stream().mapToDouble(tumorLog10Odds::getAlt).toArray());
+                    .attribute(GATKVCFConstants.LOD_KEY, tumorAltAlleles.stream().mapToDouble(tumorLog10Odds::getAlt).toArray());
 
             normalLog10Odds.ifPresent(values -> callVcb.attribute(GATKVCFConstants.NORMAL_LOD_KEY, values.asDoubleArray(tumorAltAlleles)));
             normalArtifactLog10Odds.ifPresent(values -> callVcb.attribute(GATKVCFConstants.NORMAL_ARTIFACT_LOD_ATTRIBUTE, values.asDoubleArray(tumorAltAlleles)));
