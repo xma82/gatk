@@ -25,22 +25,39 @@ public class FuncotatorTestConstants {
     public static final String HG38_3_REFERENCE_FILE_NAME = GATKBaseTest.largeFileTestDir + "funcotator" + File.separator + "hg38.3.tar.gz";
     public static final String HG19_2_REFERENCE_FILE_NAME = GATKBaseTest.largeFileTestDir + "funcotator" + File.separator + "b37.2.tar.gz";
 
-    public static final String FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER = GATKBaseTest.largeFileTestDir + "funcotator" + File.separator + "funcotator_dataSources" + File.separator;
+    public static final String FUNCOTATOR_LARGE_TEST_FILES_DIR = GATKBaseTest.largeFileTestDir + "funcotator" + File.separator;
+    public static final String FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER = FUNCOTATOR_LARGE_TEST_FILES_DIR + "funcotator_dataSources" + File.separator;
 
     public static final String REFERENCE_VERSION_HG19 = "hg19";
     public static final String REFERENCE_VERSION_HG38 = "hg38";
 
-    public static final SimpleInterval MUC16_POSITION = new SimpleInterval("chr19", 8959520, 9092018);
+    // The full span of the MUC16 gene on HG19:
+    public static final SimpleInterval MUC16_HG19_POSITION = new SimpleInterval("chr19", 8959520, 9092018);
+
+    // An edited MUC16 datasource that contains only a single transcript:
     public static final String MUC16_GENCODE_ANNOTATIONS_FILE_NAME = FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER + "gencode_muc16" + File.separator + "hg19" + File.separator + "gencode.v19.MUC16.gtf";
     public static final String MUC16_GENCODE_TRANSCRIPT_FASTA_FILE = FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER + "gencode_muc16" + File.separator + "hg19" + File.separator + "gencode.v19.MUC16_transcript.fasta";
     public static final String MUC16_TRANSCRIPT = "ENST00000397910.4";
     public static final String MUC16_PATHOLOGICAL_TRANSCRIPT = "ENST00000599436.1";
     public static final String MUC16_GENCODE_NON_BASIC_ANNOTATIONS_FILE_NAME = FUNCOTATOR_TEST_DIR + "gencode.v19.MUC16.non-basic.gtf";
 
-    public static final SimpleInterval PIK3CA_POSITION = new SimpleInterval("chr3", 178866311, 178957881);
+    // An alternate MUC16 datasource that contains all transcripts:
+    public static final String MUC16_ALL_TRANSCRIPTS_GENCODE_ANNOTATIONS_FILE_NAME = FUNCOTATOR_LARGE_TEST_FILES_DIR + "pik3ca_muc16_all_transcripts_ds" + File.separator + "gencode_muc16" + File.separator + "hg19" + File.separator + "gencode.v19.MUC16.gtf";
+    public static final String MUC16_ALL_TRANSCRIPTS_GENCODE_TRANSCRIPT_FASTA_FILE = FUNCOTATOR_LARGE_TEST_FILES_DIR + "pik3ca_muc16_all_transcripts_ds" + File.separator + "gencode_muc16" + File.separator + "hg19" + File.separator + "gencode.v19.MUC16_transcript.fasta";
+
+    // The full span of the PIK3CA gene on HG19:
+    public static final SimpleInterval PIK3CA_HG19_POSITION = new SimpleInterval("chr3", 178865902, 178957881);
+
+    // An edited PIK3CA datasource that contains only a single transcript:
     public static final String PIK3CA_GENCODE_ANNOTATIONS_FILE_NAME = FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER + "gencode_pik3ca" + File.separator + "hg19" + File.separator + "gencode.v19.PIK3CA.gtf";
     public static final String PIK3CA_GENCODE_TRANSCRIPT_FASTA_FILE = FUNCOTATOR_DATA_SOURCES_MAIN_FOLDER + "gencode_pik3ca" + File.separator + "hg19" + File.separator + "gencode.v19.PIK3CA_transcript.fasta";
     public static final String PIK3CA_TRANSCRIPT = "ENST00000263967.3";
+    // Position on HG19 of the PIK3CA_TRANSCRIPT
+    public static final SimpleInterval PIK3CA_TRANSCRIPT_POSITION = new SimpleInterval("chr3", 178866311, 178957881);
+
+    // An alternate PIK3CA datasource that contains all transcripts:
+    public static final String PIK3CA_ALL_TRANSCRIPTS_GENCODE_ANNOTATIONS_FILE_NAME = FUNCOTATOR_LARGE_TEST_FILES_DIR + "pik3ca_muc16_all_transcripts_ds" + File.separator + "gencode_pik3ca" + File.separator + "hg19" + File.separator + "gencode.v19.PIK3CA.gtf";
+    public static final String PIK3CA_ALL_TRANSCRIPTS_GENCODE_TRANSCRIPT_FASTA_FILE = FUNCOTATOR_LARGE_TEST_FILES_DIR + "pik3ca_muc16_all_transcripts_ds" + File.separator + "gencode_pik3ca" + File.separator + "hg19" + File.separator + "gencode.v19.PIK3CA_transcript.fasta";
 
     public static final String GTF_CHR3_FILE_NAME = GATKBaseTest.largeFileTestDir + "funcotator" + File.separator + "gencode.v19.chr_patch_hapl_scaff.chr3.gtf";
 
