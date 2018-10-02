@@ -25,6 +25,10 @@ workflow Cram2TrainedModel {
     Int? disk_space_gb
     Int? cpu
 
+    Int? increase_disk_size
+    Int additional_disk = select_first([increase_disk_size, 20])
+    Float ref_size = size(reference_fasta, "GB") + size(reference_fasta_index, "GB") + size(reference_dict, "GB")
+
     call CNNTasks.CramToBam {
         input:
           reference_fasta = reference_fasta,
@@ -48,6 +52,8 @@ workflow Cram2TrainedModel {
             preemptible_attempts = preemptible_attempts
     }
 
+    Float bam_size = size(CramToBam.output_bam, "GB")
+
     scatter (calling_interval in SplitIntervals.interval_files) {
         call CNNTasks.RunHC4 {
             input:
@@ -62,7 +68,7 @@ workflow Cram2TrainedModel {
                 gatk_override = gatk_override,
                 preemptible_attempts = preemptible_attempts,
                 extra_args = extra_args,
-                disk_space_gb = disk_space_gb
+                disk_space_gb = round(bam_size + ref_size + additional_disk)                                 
         }
 
         call WriteTensors {
@@ -100,7 +106,8 @@ workflow Cram2TrainedModel {
     call CNNTasks.SamtoolsMergeBAMs {
         input:
             input_bams = RunHC4.bamout,
-            output_prefix = output_prefix
+            output_prefix = output_prefix,
+            disk_space_gb = round(bam_size + ref_size + additional_disk)
     }
 
     call TrainModel {
