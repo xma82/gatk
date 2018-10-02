@@ -115,6 +115,7 @@ workflow Cram2TrainedModel {
             tar_tensors = WriteTensors.tensors,
             output_prefix = output_prefix,
             tensor_type = tensor_type,
+            gatk_docker = gatk_docker,
             gatk_override = gatk_override,
             disk_space_gb = disk_space_gb,
             epochs = epochs
@@ -144,17 +145,26 @@ task WriteTensors {
     File interval_list
 
     # Runtime parameters
+    String gatk_docker
     File? gatk_override
     Int? mem_gb
-    String gatk_docker
     Int? preemptible_attempts
     Int? disk_space_gb
     Int? cpu
 
+    # You may have to change the following two parameter values depending on the task requirements
+    Int default_ram_mb = 8000
+
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = if defined(mem_gb) then mem_gb *1000 else default_ram_mb
+    Int command_mem = machine_mem - 1000
     command {
+        set -e
+        export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
+
         mkdir "./tensors/"
 
-        java -Djava.io.tmpdir=tmp -jar ${gatk_override} \
+        gatk --java-options "-Xmx${command_mem}m" \
         CNNVariantWriteTensors \
         -R ${reference_fasta} \
         -V ${input_vcf} \
@@ -171,8 +181,8 @@ task WriteTensors {
       File tensors = "tensors.tar.gz"
     }
     runtime {
-        docker: "samfriedman/p3"
-        memory: "3 GB"
+        docker: "${gatk_docker}"
+        memory: machine_mem + " MB"
         disks: "local-disk " + disk_space_gb + " SSD"
     }
 
@@ -185,18 +195,28 @@ task TrainModel {
     Int epochs
 
     # Runtime parameters
+    String gatk_docker
     File? gatk_override
     Int? mem_gb
     Int? preemptible_attempts
     Int? disk_space_gb
     Int? cpu
 
+    # You may have to change the following two parameter values depending on the task requirements
+    Int default_ram_mb = 8000
+
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = if defined(mem_gb) then mem_gb *1000 else default_ram_mb
+    Int command_mem = machine_mem - 1000
     command {
+        set -e
+        export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
+
         for tensors in ${sep=' ' tar_tensors}  ; do
             tar -xzf $tensors 
         done
 
-        java -Djava.io.tmpdir=tmp -jar ${gatk_override} \
+        gatk --java-options "-Xmx${command_mem}m" \
         CNNVariantTrain \
         -input-tensor-dir "./tensors/" \
         -model-name ${output_prefix} \
@@ -213,11 +233,11 @@ task TrainModel {
     }
 
     runtime {
-      docker: "samfriedman/gpu"
-      gpuType: "nvidia-tesla-k80" # This will require PAPI v2 and CUDA on VM
-      gpuCount: 1
-      zones: ["us-central1-c"]
-      memory: "16 GB"
+      docker: "${gatk_docker}"
+      #gpuType: "nvidia-tesla-k80" # This will require PAPI v2 and CUDA on VM
+      #gpuCount: 1
+      #zones: ["us-central1-c"]
+      memory: machine_mem + " MB"
       disks: "local-disk 400 SSD"
       bootDiskSizeGb: "16"
     }
