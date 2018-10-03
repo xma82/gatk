@@ -690,20 +690,6 @@ public final class HaplotypeCallerEngine implements AssemblyRegionEvaluator {
     }
 
     /**
-     * Create a context that maps each read to the reference haplotype with log10 L of 0
-     * @param refHaplotype a non-null reference haplotype
-     * @param samples a list of all samples
-     * @param region the assembly region containing reads
-     * @return a map from sample -> PerReadAlleleLikelihoodMap that maps each read to ref
-     */
-    public ReadLikelihoods<Haplotype> createDummyStratifiedReadMap(final Haplotype refHaplotype,
-                                                                   final SampleList samples,
-                                                                   final AssemblyRegion region) {
-        return new ReadLikelihoods<>(samples, new IndexedAlleleList<>(refHaplotype),
-                                     splitReadsBySample(samples, region.getReads()));
-    }
-
-    /**
      * Shutdown this HC engine, closing resources as appropriate
      */
     public void shutdown() {

@@ -180,7 +180,12 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
 
     public List<VariantContext> callRegion(final AssemblyRegion originalAssemblyRegion, final ReferenceContext referenceContext, final FeatureContext featureContext ) {
         if ( !originalAssemblyRegion.isActive() || originalAssemblyRegion.size() == 0 ) {
-            return NO_CALLS;
+            if (emitReferenceConfidence()) {
+                return
+            }
+            else {
+                return NO_CALLS;
+            }
         }
 
         final List<VariantContext> givenAlleles = MTAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES ?
@@ -295,6 +300,32 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         }
 
         return new ActivityProfileState( refInterval, 1.0, ActivityProfileState.Type.NONE, null);
+    }
+
+    /**
+     * Are we emitting a reference confidence in some form, or not?
+     *
+     * @return true if HC must emit reference confidence.
+     */
+    public boolean emitReferenceConfidence() {
+        return MTAC.emitReferenceConfidence != ReferenceConfidenceMode.NONE;
+    }
+
+    /**
+     * Create an ref model result (ref model or no calls depending on mode) for an active region without any variation
+     * (not is active, or assembled to just ref)
+     *
+     * @param region the region to return a no-variation result
+     * @param needsToBeFinalized should the region be finalized before computing the ref model (should be false if already done)
+     * @return a list of variant contexts (can be empty) to emit for this ref region
+     */
+    private List<VariantContext> referenceModelForNoVariation(final AssemblyRegion region, final boolean needsToBeFinalized, final List<VariantContext> VCpriors) {
+        final SimpleInterval paddedLoc = region.getExtendedSpan();
+        final Haplotype refHaplotype = AssemblyBasedCallerUtils.createReferenceHaplotype(region, paddedLoc, referenceReader);
+        final List<Haplotype> haplotypes = Collections.singletonList(refHaplotype);
+        return referenceConfidenceModel.calculateRefConfidence(refHaplotype, haplotypes,
+                paddedLoc, region, createDummyStratifiedReadMap(refHaplotype, samplesList, region),
+                genotypingEngine.getPloidyModel(), Collections.emptyList(), hcArgs.genotypeArgs.supportVariants != null, VCpriors);
     }
 
     private static int getCurrentOrFollowingIndelLength(final PileupElement pe) {

@@ -25,6 +25,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
+import org.broadinstitute.hellbender.engine.AssemblyRegion;
 import org.broadinstitute.hellbender.engine.ReadsContext;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
@@ -32,6 +33,10 @@ import org.broadinstitute.hellbender.utils.BaseUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.Utils;
+import org.broadinstitute.hellbender.utils.genotyper.IndexedAlleleList;
+import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
+import org.broadinstitute.hellbender.utils.genotyper.SampleList;
+import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
 import org.broadinstitute.hellbender.utils.read.markduplicates.LibraryIdGenerator;
 import org.broadinstitute.hellbender.utils.recalibration.EventType;
 
@@ -1495,5 +1500,19 @@ public final class ReadUtils {
      **/
     public static boolean readHasReasonableMQ(final GATKRead read){
         return read.getMappingQuality() != 0 && read.getMappingQuality() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE;
+    }
+
+    /**
+     * Create a context that maps each read to the reference haplotype with log10 L of 0
+     * @param refHaplotype a non-null reference haplotype
+     * @param samples a list of all samples
+     * @param region the assembly region containing reads
+     * @return a map from sample -> PerReadAlleleLikelihoodMap that maps each read to ref
+     */
+    public static ReadLikelihoods<Haplotype> createDummyStratifiedReadMap(final Haplotype refHaplotype,
+                                                                   final SampleList samples,
+                                                                   final AssemblyRegion region) {
+        return new ReadLikelihoods<>(samples, new IndexedAlleleList<>(refHaplotype),
+                splitReadsBySample(samples, region.getReads()));
     }
 }
