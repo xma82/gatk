@@ -20,6 +20,7 @@ import org.broadinstitute.hellbender.tools.walkers.annotator.StandardMutectAnnot
 import org.broadinstitute.hellbender.tools.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypingGivenAllelesUtils;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypingOutputMode;
+import org.broadinstitute.hellbender.tools.walkers.genotyper.HomogeneousPloidyModel;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.*;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.readthreading.ReadThreadingAssembler;
 import org.broadinstitute.hellbender.transformers.PalindromeArtifactClipReadTransformer;
@@ -90,6 +91,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
     private VariantAnnotatorEngine annotationEngine;
     private final SmithWatermanAligner aligner;
     private AssemblyRegionTrimmer trimmer = new AssemblyRegionTrimmer();
+    private ReferenceConfidenceModel referenceConfidenceModel = null;
 
     /**
      * Create and initialize a new HaplotypeCallerEngine given a collection of HaplotypeCaller arguments, a reads header,
@@ -121,6 +123,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         haplotypeBAMWriter = AssemblyBasedCallerUtils.createBamWriter(MTAC, createBamOutIndex, createBamOutMD5, header);
         trimmer.initialize(MTAC.assemblyRegionTrimmerArgs, header.getSequenceDictionary(), MTAC.debug,
                 MTAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES, false);
+        referenceConfidenceModel = new ReferenceConfidenceModel(samplesList, header, 0, 0);  //TODO: do something classier with the indel size arg
     }
 
     //default M2 read filters.  Cheap ones come first in order to fail fast.
@@ -181,7 +184,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
     public List<VariantContext> callRegion(final AssemblyRegion originalAssemblyRegion, final ReferenceContext referenceContext, final FeatureContext featureContext ) {
         if ( !originalAssemblyRegion.isActive() || originalAssemblyRegion.size() == 0 ) {
             if (emitReferenceConfidence()) {
-                return
+                return referenceModelForNoVariation(originalAssemblyRegion);  //TODD: does this need to be finalized?
             }
             else {
                 return NO_CALLS;
@@ -316,16 +319,15 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
      * (not is active, or assembled to just ref)
      *
      * @param region the region to return a no-variation result
-     * @param needsToBeFinalized should the region be finalized before computing the ref model (should be false if already done)
      * @return a list of variant contexts (can be empty) to emit for this ref region
      */
-    private List<VariantContext> referenceModelForNoVariation(final AssemblyRegion region, final boolean needsToBeFinalized, final List<VariantContext> VCpriors) {
+    private List<VariantContext> referenceModelForNoVariation(final AssemblyRegion region) {
         final SimpleInterval paddedLoc = region.getExtendedSpan();
         final Haplotype refHaplotype = AssemblyBasedCallerUtils.createReferenceHaplotype(region, paddedLoc, referenceReader);
         final List<Haplotype> haplotypes = Collections.singletonList(refHaplotype);
         return referenceConfidenceModel.calculateRefConfidence(refHaplotype, haplotypes,
-                paddedLoc, region, createDummyStratifiedReadMap(refHaplotype, samplesList, region),
-                genotypingEngine.getPloidyModel(), Collections.emptyList(), hcArgs.genotypeArgs.supportVariants != null, VCpriors);
+                paddedLoc, region, AssemblyBasedCallerUtils.createDummyStratifiedReadMap(refHaplotype, samplesList, header, region),
+                new HomogeneousPloidyModel(samplesList, 0), Collections.emptyList(), false, null); //TODO: clean up args
     }
 
     private static int getCurrentOrFollowingIndelLength(final PileupElement pe) {

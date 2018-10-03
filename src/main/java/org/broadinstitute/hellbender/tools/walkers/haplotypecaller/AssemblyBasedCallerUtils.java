@@ -15,6 +15,7 @@ import org.broadinstitute.hellbender.utils.clipping.ReadClipper;
 import org.broadinstitute.hellbender.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.hellbender.utils.fragments.FragmentCollection;
 import org.broadinstitute.hellbender.utils.fragments.FragmentUtils;
+import org.broadinstitute.hellbender.utils.genotyper.IndexedAlleleList;
 import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
 import org.broadinstitute.hellbender.utils.genotyper.SampleList;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
@@ -272,5 +273,20 @@ public final class AssemblyBasedCallerUtils {
             }
             throw e;
         }
+    }
+
+    /**
+     * Create a context that maps each read to the reference haplotype with log10 L of 0
+     * @param refHaplotype a non-null reference haplotype
+     * @param samples a list of all samples
+     * @param region the assembly region containing reads
+     * @return a map from sample -> PerReadAlleleLikelihoodMap that maps each read to ref
+     */
+    public static ReadLikelihoods<Haplotype> createDummyStratifiedReadMap(final Haplotype refHaplotype,
+                                                                          final SampleList samples,
+                                                                          final SAMFileHeader readsHeader,
+                                                                          final AssemblyRegion region) {
+        return new ReadLikelihoods<>(samples, new IndexedAlleleList<>(refHaplotype),
+                splitReadsBySample(samples, readsHeader, region.getReads()));
     }
 }

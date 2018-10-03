@@ -1501,18 +1501,4 @@ public final class ReadUtils {
     public static boolean readHasReasonableMQ(final GATKRead read){
         return read.getMappingQuality() != 0 && read.getMappingQuality() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE;
     }
-
-    /**
-     * Create a context that maps each read to the reference haplotype with log10 L of 0
-     * @param refHaplotype a non-null reference haplotype
-     * @param samples a list of all samples
-     * @param region the assembly region containing reads
-     * @return a map from sample -> PerReadAlleleLikelihoodMap that maps each read to ref
-     */
-    public static ReadLikelihoods<Haplotype> createDummyStratifiedReadMap(final Haplotype refHaplotype,
-                                                                   final SampleList samples,
-                                                                   final AssemblyRegion region) {
-        return new ReadLikelihoods<>(samples, new IndexedAlleleList<>(refHaplotype),
-                splitReadsBySample(samples, region.getReads()));
-    }
 }
