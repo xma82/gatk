@@ -32,6 +32,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
+import static org.broadinstitute.hellbender.tools.walkers.haplotypecaller.AssemblyBasedCallerUtils.getPileupsOverReference;
+
 /**
  * Code for estimating the reference confidence
  *
@@ -248,7 +250,7 @@ public final class ReferenceConfidenceModel {
         final int ploidy = ploidyModel.samplePloidy(0); // the first sample = the only sample in reference-confidence mode.
 
         final SimpleInterval refSpan = activeRegion.getSpan();
-        final List<ReadPileup> refPileups = getPileupsOverReference(refHaplotype, calledHaplotypes, paddedReferenceLoc, activeRegion, refSpan, readLikelihoods);
+        final List<ReadPileup> refPileups = getPileupsOverReference(refHaplotype, calledHaplotypes, paddedReferenceLoc, activeRegion, refSpan, readLikelihoods, samples);
         final byte[] ref = refHaplotype.getBases();
         final List<VariantContext> results = new ArrayList<>(refSpan.size());
         final String sampleName = readLikelihoods.getSample(0);
@@ -463,39 +465,7 @@ public final class ReferenceConfidenceModel {
         return element.getBase() != refBase || element.isDeletion(); //we shouldn't have soft clips after assembly
     }
 
-    /**
-     * Get a list of pileups that span the entire active region span, in order, one for each position
-     */
-    private List<ReadPileup> getPileupsOverReference(final Haplotype refHaplotype,
-                                                           final Collection<Haplotype> calledHaplotypes,
-                                                           final SimpleInterval paddedReferenceLoc,
-                                                           final AssemblyRegion activeRegion,
-                                                           final SimpleInterval activeRegionSpan,
-                                                           final ReadLikelihoods<Haplotype> readLikelihoods) {
-        Utils.validateArg(calledHaplotypes.contains(refHaplotype), "calledHaplotypes must contain the refHaplotype");
-        Utils.validateArg(readLikelihoods.numberOfSamples() == 1, () -> "readLikelihoods must contain exactly one sample but it contained " + readLikelihoods.numberOfSamples());
 
-        final List<GATKRead> reads = new ArrayList<>(readLikelihoods.sampleReads(0));
-        reads.sort(new ReadCoordinateComparator(activeRegion.getHeader()));  //because we updated the reads based on the local realignments we have to re-sort or the pileups will be... unpredictable
-
-        final LocusIteratorByState libs = new LocusIteratorByState(reads.iterator(), LocusIteratorByState.NO_DOWNSAMPLING,
-                false, samples.asSetOfSamples(), activeRegion.getHeader(), true);
-
-        final int startPos = activeRegionSpan.getStart();
-        final List<ReadPileup> pileups = new ArrayList<>(activeRegionSpan.getEnd() - startPos);
-        AlignmentContext next = libs.advanceToLocus(startPos, true);
-        for ( int curPos = startPos; curPos <= activeRegionSpan.getEnd(); curPos++ ) {
-            if ( next != null && next.getLocation().getStart() == curPos ) {
-                pileups.add(next.getBasePileup());
-                next = libs.hasNext() ? libs.next() : null;
-            } else {
-                // no data, so we create empty pileups
-                pileups.add(new ReadPileup(new SimpleInterval(activeRegionSpan.getContig(), curPos, curPos)));
-            }
-        }
-
-        return pileups;
-    }
 
     /**
      * Return the rightmost variant context in maybeOverlapping that overlaps curPos
