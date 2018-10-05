@@ -810,12 +810,17 @@ public final class GenomicsDBImportIntegrationTest extends CommandLineProgramTes
         ObjectMapper objectMapper = new ObjectMapper();
         myMap = objectMapper.readValue(mapData, new TypeReference<HashMap<String, String>>() {});
         myMap.forEach((key, value) -> {
-            if (key.contains("private") || key.contains("id")) {
                 System.out.println("Key=" + key);
-            } else {
-                System.out.println("Key=" + key + " Value=" + value);
-            }
         });
+	
+	final String workspace = BucketUtils.randomRemotePath(getGCPTestStaging(), "", "") + "/";
+ 	
+	int rc = GenomicsDBUtils.createTileDBWorkspace(workspace, false);
+	if (rc == 0) {
+		System.out.println("GenomicsDBUtils.createTileDBWorkspace returned successfully " + workspace);
+	} else {
+		System.out.println("GenomicsDBUtils.createTileDBWorkspace FAILED " + workspace);
+	}
     }
 
     /*@Test(groups = {"bucket"})
