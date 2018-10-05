@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.tools.walkers.mutect;
 
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.vcf.VCFConstants;
@@ -228,7 +229,38 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         final HaplotypeCallerGenotypingEngine.CalledHaplotypes calledHaplotypes = genotypingEngine.callMutations(
                 readLikelihoods, assemblyResult, referenceContext, regionForGenotyping.getSpan(), featureContext, givenAlleles, header);
         writeBamOutput(assemblyResult, readLikelihoods, calledHaplotypes);
-        return calledHaplotypes.getCalls();
+        if (emitReferenceConfidence()) {
+            if ( !containsCalls(calledHaplotypes) ) {
+                // no called all of the potential haplotypes
+                return referenceModelForNoVariation(assemblyActiveRegion);
+            }
+            else {
+                final List<VariantContext> result = new LinkedList<>();
+                // output left-flanking non-variant section:
+                if (trimmingResult.hasLeftFlankingRegion()) {
+                    result.addAll(referenceModelForNoVariation(trimmingResult.nonVariantLeftFlankRegion()));
+                }
+                // output variant containing region.
+                result.addAll(referenceConfidenceModel.calculateRefConfidence(assemblyResult.getReferenceHaplotype(),
+                        calledHaplotypes.getCalledHaplotypes(), assemblyResult.getPaddedReferenceLoc(), regionForGenotyping,
+                        readLikelihoods, new HomogeneousPloidyModel(samplesList, 2), calledHaplotypes.getCalls()));
+                // output right-flanking non-variant section:
+                if (trimmingResult.hasRightFlankingRegion()) {
+                    result.addAll(referenceModelForNoVariation(trimmingResult.nonVariantRightFlankRegion()));
+                }
+                return result;
+            }
+        }
+        else {
+            return calledHaplotypes.getCalls();
+        }
+    }
+
+    //TODO: refactor this
+    private boolean containsCalls(final HaplotypeCallerGenotypingEngine.CalledHaplotypes calledHaplotypes) {
+        return calledHaplotypes.getCalls().stream()
+                .flatMap(call -> call.getGenotypes().stream())
+                .anyMatch(Genotype::isCalled);
     }
 
     private void writeBamOutput(AssemblyResultSet assemblyResult, ReadLikelihoods<Haplotype> readLikelihoods, HaplotypeCallerGenotypingEngine.CalledHaplotypes calledHaplotypes) {

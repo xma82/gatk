@@ -45,7 +45,6 @@ final class TLODBlock implements Locatable {
      */
     public TLODBlock(final VariantContext startingVC, final double lowerLODBound, final double upperLODBound) {
         Utils.nonNull(startingVC, "startingVC cannot be null");
-        Utils.validateArg(upperLODBound <= VCFConstants.MAX_GENOTYPE_QUAL + 1, "upperLODBound must be <= " + (VCFConstants.MAX_GENOTYPE_QUAL + 1));
         if ( lowerLODBound > upperLODBound ) { throw new IllegalArgumentException("bad lowerLODBound " + lowerLODBound + " as it's >= upperLODBound " + upperLODBound); }
 
         this.startingVC = startingVC;

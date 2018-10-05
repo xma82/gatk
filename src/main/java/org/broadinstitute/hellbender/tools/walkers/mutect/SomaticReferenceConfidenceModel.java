@@ -117,8 +117,9 @@ public class SomaticReferenceConfidenceModel {
         Map<String, List<GATKRead>> perSampleReadMap = new HashMap<>();
         perSampleReadMap.put(samples.getSample(0), pileup.getReads());
         ReadLikelihoods readLikelihoods = new ReadLikelihoods(samples, new IndexedAlleleList(Arrays.asList(Allele.create(refBase,true), Allele.NON_REF_ALLELE)), perSampleReadMap);
+        final Iterator<PileupElement> pileupIter = pileup.iterator();
         for (int i = 0; i < pileup.size(); i++) {
-            final PileupElement element = pileup.iterator().next();
+            final PileupElement element = pileupIter.next();
             final boolean isAlt = readsWereRealigned ? isAltAfterAssembly(element, refBase) : isAltBeforeAssembly(element, refBase);
             final double referenceLikelihood;
             final double nonRefLikelihood;

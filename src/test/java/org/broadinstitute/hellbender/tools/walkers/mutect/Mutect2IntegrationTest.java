@@ -12,10 +12,14 @@ import org.broadinstitute.hellbender.GATKBaseTest;
 import org.broadinstitute.hellbender.Main;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.engine.FeatureDataSource;
+import org.broadinstitute.hellbender.testutils.CommandLineProgramTester;
 import org.broadinstitute.hellbender.tools.exome.orientationbiasvariantfilter.OrientationBiasUtils;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.AssemblyBasedCallerArgumentCollection;
 import org.broadinstitute.hellbender.tools.walkers.validation.ConcordanceSummaryRecord;
+import org.broadinstitute.hellbender.tools.walkers.variantutils.ValidateVariants;
+import org.broadinstitute.hellbender.utils.IntervalUtils;
 import org.broadinstitute.hellbender.utils.MathUtils;
+import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.testutils.ArgumentsBuilder;
 import org.broadinstitute.hellbender.testutils.VariantContextTestUtils;
@@ -534,17 +538,13 @@ public class Mutect2IntegrationTest extends CommandLineProgramTest {
                 "-ERC", "GVCF");
         runCommandLine(args);
 
-        final List<VariantContext> variants = VariantContextTestUtils.streamVcf(unfilteredVcf).collect(Collectors.toList());
-        final Set<String> variantKeys = variants.stream().map(vc -> keyForVariant(vc)).collect(Collectors.toSet());
-
-        final List<String> expectedKeys = Arrays.asList(
-                "chrM:152-152 [T*, C]",
-                "chrM:263-263 [A*, G]",
-                "chrM:301-301 [A*, AC]",
-                "chrM:302-302 [A*, AC, C, ACC]",
-                "chrM:310-310 [T*, TC]",
-                "chrM:750-750 [A*, G]");
-        Assert.assertTrue(expectedKeys.stream().allMatch(variantKeys::contains));
+        final CommandLineProgramTester validator = ValidateVariants.class::getSimpleName;
+        final ArgumentsBuilder args2 = new ArgumentsBuilder();
+        args2.addArgument("R", MITO_REF.getAbsolutePath());
+        args2.addArgument("V", unfilteredVcf.getAbsolutePath());
+        args2.addArgument("L", IntervalUtils.locatableToString(new SimpleInterval("chrM:1-1000")));
+        args2.add("-gvcf");
+        validator.runCommandLine(args2);  //will throw a UserException if GVCF isn't contiguous
     }
 
    @Test

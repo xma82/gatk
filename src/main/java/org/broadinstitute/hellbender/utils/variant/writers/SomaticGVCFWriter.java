@@ -9,15 +9,16 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.vcf.VCFConstants;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
+import org.broadinstitute.hellbender.utils.variant.GATKVCFHeaderLines;
 
 import java.util.List;
 
-import static htsjdk.variant.vcf.VCFConstants.MAX_GENOTYPE_QUAL;
-
-public class SomaticGVCFWriter {
+public class SomaticGVCFWriter implements VariantContextWriter {
 
     /** Where we'll ultimately write our VCF records */
     private final VariantContextWriter underlyingWriter;
@@ -204,5 +205,33 @@ public class SomaticGVCFWriter {
             underlyingWriter.add(vc);
         }
 
+    }
+
+    /**
+     * Write the VCF header
+     *
+     * Adds standard GVCF fields to the header
+     *
+     * @param header a non-null header
+     */
+    @Override
+    public void writeHeader(VCFHeader header) {
+        Utils.nonNull(header, "header cannot be null");
+
+        header.addMetaDataLine(VCFStandardHeaderLines.getInfoLine(VCFConstants.END_KEY));
+        header.addMetaDataLine(GATKVCFHeaderLines.getFormatLine(GATKVCFConstants.MIN_DP_FORMAT_KEY));
+
+        /*
+        for (final Range<Integer> partition : lodPartitions.asMapOfRanges().keySet()) {
+            header.addMetaDataLine(rangeToVCFHeaderLine(partition));
+        }
+        */
+
+        underlyingWriter.writeHeader(header);
+    }
+
+    @Override
+    public void setHeader(VCFHeader header) {
+        underlyingWriter.setHeader(header);
     }
 }
