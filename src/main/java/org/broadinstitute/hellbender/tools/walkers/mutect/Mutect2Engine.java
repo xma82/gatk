@@ -91,7 +91,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
     private VariantAnnotatorEngine annotationEngine;
     private final SmithWatermanAligner aligner;
     private AssemblyRegionTrimmer trimmer = new AssemblyRegionTrimmer();
-    private ReferenceConfidenceModel referenceConfidenceModel = null;
+    private SomaticReferenceConfidenceModel referenceConfidenceModel = null;
 
     /**
      * Create and initialize a new HaplotypeCallerEngine given a collection of HaplotypeCaller arguments, a reads header,
@@ -123,7 +123,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         haplotypeBAMWriter = AssemblyBasedCallerUtils.createBamWriter(MTAC, createBamOutIndex, createBamOutMD5, header);
         trimmer.initialize(MTAC.assemblyRegionTrimmerArgs, header.getSequenceDictionary(), MTAC.debug,
                 MTAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES, false);
-        referenceConfidenceModel = new ReferenceConfidenceModel(samplesList, header, 0, 0);  //TODO: do something classier with the indel size arg
+        referenceConfidenceModel = new SomaticReferenceConfidenceModel();  //TODO: do something classier with the indel size arg
     }
 
     //default M2 read filters.  Cheap ones come first in order to fail fast.

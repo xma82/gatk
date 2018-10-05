@@ -9,7 +9,6 @@ import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFSimpleHeaderLine;
-import org.broadinstitute.hellbender.engine.AlignmentContext;
 import org.broadinstitute.hellbender.engine.AssemblyRegion;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.PloidyModel;
 import org.broadinstitute.hellbender.tools.walkers.variantutils.PosteriorProbabilitiesUtils;
@@ -17,13 +16,11 @@ import org.broadinstitute.hellbender.utils.*;
 import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
 import org.broadinstitute.hellbender.utils.genotyper.SampleList;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
-import org.broadinstitute.hellbender.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.hellbender.utils.param.ParamUtils;
 import org.broadinstitute.hellbender.utils.pileup.PileupElement;
 import org.broadinstitute.hellbender.utils.pileup.ReadPileup;
 import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
-import org.broadinstitute.hellbender.utils.read.ReadCoordinateComparator;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.hellbender.utils.variant.HomoSapiensConstants;
@@ -41,7 +38,7 @@ import static org.broadinstitute.hellbender.tools.walkers.haplotypecaller.Assemb
  * well-determined REF/REF diploid genotype.
  *
  */
-public final class ReferenceConfidenceModel {
+public class ReferenceConfidenceModel {
 
     private final SampleList samples;
     private final int indelInformativeDepthIndelSize;
@@ -113,7 +110,7 @@ public final class ReferenceConfidenceModel {
      * the HaplotypeCaller by ~10% vs. accessing the fields indirectly via setters, as seen in a profiler.
      */
     @VisibleForTesting
-    static final class RefVsAnyResult {
+    public static final class RefVsAnyResult {
         /**
          * The genotype likelihoods for ref/ref ref/non-ref non-ref/non-ref
          *
@@ -260,7 +257,7 @@ public final class ReferenceConfidenceModel {
             final Locatable curPos = pileup.getLocation();
             final int offset = curPos.getStart() - refSpan.getStart();
 
-            final VariantContext overlappingSite = getOverlappingVariantContext(curPos, variantCalls);
+            final VariantContext overlappingSite = GATKVariantContextUtils.getOverlappingVariantContext(curPos, variantCalls);
             final List<VariantContext> currentPriors = getMatchingPriors(curPos, overlappingSite, VCpriors);
             if ( overlappingSite != null && overlappingSite.getStart() == curPos.getStart() ) {
                 if (applyPriors) {
@@ -280,7 +277,7 @@ public final class ReferenceConfidenceModel {
     }
 
 
-   private VariantContext makeReferenceConfidenceVariantContext(final int ploidy,
+   public VariantContext makeReferenceConfidenceVariantContext(final int ploidy,
                                                                  final byte[] ref,
                                                                  final String sampleName,
                                                                  final int globalRefOffset,
@@ -456,37 +453,15 @@ public final class ReferenceConfidenceModel {
         }
     }
 
-    private boolean isAltBeforeAssembly(final PileupElement element, final byte refBase){
+    public static boolean isAltBeforeAssembly(final PileupElement element, final byte refBase){
         return element.getBase() != refBase || element.isDeletion() || element.isBeforeDeletionStart()
                 || element.isAfterDeletionEnd() || element.isBeforeInsertion() || element.isAfterInsertion() || element.isNextToSoftClip();
     }
 
-    private boolean isAltAfterAssembly(final PileupElement element, final byte refBase){
+    public static boolean isAltAfterAssembly(final PileupElement element, final byte refBase){
         return element.getBase() != refBase || element.isDeletion(); //we shouldn't have soft clips after assembly
     }
 
-
-
-    /**
-     * Return the rightmost variant context in maybeOverlapping that overlaps curPos
-     *
-     * @param curPos non-null genome loc
-     * @param maybeOverlapping a collection of variant contexts that might overlap curPos
-     * @return a VariantContext, or null if none overlaps
-     */
-    @VisibleForTesting
-    VariantContext getOverlappingVariantContext(final Locatable curPos, final Collection<VariantContext> maybeOverlapping) {
-        final SimpleInterval curPosSI = new SimpleInterval(curPos);
-        VariantContext overlaps = null;
-        for ( final VariantContext vc : maybeOverlapping ) {
-            if ( curPosSI.overlaps(vc) ) {
-                if ( overlaps == null || vc.getStart() > overlaps.getStart() ) {
-                    overlaps = vc;
-                }
-            }
-        }
-        return overlaps;
-    }
 
     /**
      * Note that we don't have to match alleles because the PosteriorProbabilitesUtils will take care of that

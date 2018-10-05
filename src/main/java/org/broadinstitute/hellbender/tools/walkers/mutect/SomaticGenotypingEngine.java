@@ -213,7 +213,7 @@ public class SomaticGenotypingEngine extends AssemblyBasedCallerGenotypingEngine
     }
 
     // compute the likelihoods that each allele is contained at some allele fraction in the sample
-    private PerAlleleCollection<Double> somaticLog10Odds(final LikelihoodMatrix<Allele> log10Matrix) {
+    protected PerAlleleCollection<Double> somaticLog10Odds(final LikelihoodMatrix<Allele> log10Matrix) {
         final double log10EvidenceWithAllAlleles = log10Matrix.numberOfReads() == 0 ? 0 :
                 SomaticLikelihoodsEngine.log10Evidence(getAsRealMatrix(log10Matrix));
 

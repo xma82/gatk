@@ -1,42 +1,141 @@
 package org.broadinstitute.hellbender.tools.walkers.mutect;
 
+import com.google.common.annotations.VisibleForTesting;
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.util.Locatable;
-import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.*;
 import org.broadinstitute.hellbender.engine.AssemblyRegion;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.PloidyModel;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.AssemblyBasedCallerUtils;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.ReferenceConfidenceModel;
 import org.broadinstitute.hellbender.tools.walkers.variantutils.PosteriorProbabilitiesUtils;
 import org.broadinstitute.hellbender.utils.MathUtils;
+import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
+import org.broadinstitute.hellbender.utils.genotyper.IndexedAlleleList;
 import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
+import org.broadinstitute.hellbender.utils.genotyper.SampleList;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
+import org.broadinstitute.hellbender.utils.param.ParamUtils;
+import org.broadinstitute.hellbender.utils.pileup.PileupElement;
 import org.broadinstitute.hellbender.utils.pileup.ReadPileup;
+import org.broadinstitute.hellbender.utils.read.GATKRead;
+import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
+import org.broadinstitute.hellbender.utils.variant.GATKVariant;
+import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.DoubleStream;
 
-public class SomaticReferenceConfidenceModel{
+import static org.broadinstitute.hellbender.tools.walkers.haplotypecaller.ReferenceConfidenceModel.isAltAfterAssembly;
+import static org.broadinstitute.hellbender.tools.walkers.haplotypecaller.ReferenceConfidenceModel.isAltBeforeAssembly;
+import static org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils.getOverlappingVariantContext;
+
+public class SomaticReferenceConfidenceModel {
+
+    private final SampleList samples;
+    private final int indelInformativeDepthIndelSize;
+    private final SomaticGenotypingEngine genotypingEngine;
+
+    /**
+     * Holds information about a genotype call of a single sample reference vs. any non-ref event
+     *
+     * IMPORTANT PERFORMANCE NOTE!!! Allowing direct field access (within this class only) speeds up
+     * the HaplotypeCaller by ~10% vs. accessing the fields indirectly via setters, as seen in a profiler.
+     */
+    @VisibleForTesting
+    public static final class SomaticRefVsAnyResult {
+        /**
+         * The genotype likelihoods for ref/ref ref/non-ref non-ref/non-ref
+         *
+         * Fields are visible because direct field access for this particular class has a major performance
+         * impact on the HaplotypeCaller, as noted above, and the class itself is nested within
+         * ReferenceConfidenceModel anyway.
+         */
+        PerAlleleCollection<Double> lods;
+
+        int refDepth = 0;
+        int nonRefDepth = 0;
+
+        /**
+         * Creates a new ref-vs-alt result indicating the genotype likelihood vector capacity.
+         */
+        public SomaticRefVsAnyResult() {
+            lods = new PerAlleleCollection<>(PerAlleleCollection.Type.REF_AND_ALT);
+        }
+
+        /**
+         * @return Get the DP (sum of AD values)
+         */
+        int getDP() {
+            return refDepth + nonRefDepth;
+        }
+
+        /**
+         * Return the AD fields. Returns a newly allocated array every time.
+         */
+        int[] getAD() {
+            return new int[]{refDepth, nonRefDepth};
+        }
+    }
+
+    /**
+     * Create a new ReferenceConfidenceModel
+     *
+     * @param samples the list of all samples we'll be considering with this model
+     * @param header the SAMFileHeader describing the read information (used for debugging)
+     * @param indelInformativeDepthIndelSize the max size of indels to consider when calculating indel informative depths
+     */
+    public SomaticReferenceConfidenceModel(final SampleList samples,
+                                    final SAMFileHeader header,
+                                    final int indelInformativeDepthIndelSize,
+                                    final SomaticGenotypingEngine genotypingEngine){
+        this.samples = samples;
+        this.indelInformativeDepthIndelSize = indelInformativeDepthIndelSize;
+        this.genotypingEngine = genotypingEngine;
+    }
+
     /**
      * Calculate the genotype likelihoods for the sample in pileup for being hom-ref contrasted with being ref vs. alt
      *
      * @param ploidy target sample ploidy.
      * @param pileup the read backed pileup containing the data we want to evaluate
      * @param refBase the reference base at this pileup position
-     * @param minBaseQual the min base quality for a read in the pileup at the pileup position to be included in the calculation
+     * @param qual the min base quality for a read in the pileup at the pileup position to be included in the calculation
      * @param hqSoftClips running average data structure (can be null) to collect information about the number of high quality soft clips
      * @return a RefVsAnyResult genotype call.
      */
-    @Override
-    public RefVsAnyResult calcGenotypeLikelihoodsOfRefVsAny(final int ploidy,
+    public SomaticRefVsAnyResult calcGenotypeLikelihoodsOfRefVsAny(final int ploidy,
                                                             final ReadPileup pileup,
                                                             final byte refBase,
-                                                            final byte minBaseQual,
+                                                            final byte qual,
                                                             final MathUtils.RunningAverage hqSoftClips,
                                                             final boolean readsWereRealigned) {
+
+        final SomaticRefVsAnyResult result = new SomaticRefVsAnyResult();
+        Map<String, List<GATKRead>> perSampleReadMap = new HashMap<>();
+        perSampleReadMap.put(samples.getSample(0), pileup.getReads());
+        ReadLikelihoods readLikelihoods = new ReadLikelihoods(samples, new IndexedAlleleList(Arrays.asList(Allele.create(refBase), Allele.NON_REF_ALLELE)), perSampleReadMap);
+        for (int i = 0; i < pileup.size(); i++) {
+            final PileupElement element = pileup.iterator().next();
+            final boolean isAlt = readsWereRealigned ? isAltAfterAssembly(element, refBase) : isAltBeforeAssembly(element, refBase);
+            final double referenceLikelihood;
+            final double nonRefLikelihood;
+            if (isAlt) {
+                nonRefLikelihood = QualityUtils.qualToProbLog10(qual);
+                referenceLikelihood = QualityUtils.qualToErrorProbLog10(qual) + MathUtils.LOG10_ONE_THIRD;
+                result.nonRefDepth++;
+            } else {
+                referenceLikelihood = QualityUtils.qualToProbLog10(qual);
+                nonRefLikelihood = QualityUtils.qualToErrorProbLog10(qual) + MathUtils.LOG10_ONE_THIRD;
+                result.refDepth++;
+            }
+            readLikelihoods.sampleMatrix(0).set(0, i, referenceLikelihood);
+            readLikelihoods.sampleMatrix(0).set(1, i, referenceLikelihood);
+        }
+        result.lods = genotypingEngine.somaticLog10Odds(readLikelihoods.sampleMatrix(0));
+        return result;
     }
 
     public List<VariantContext> calculateRefConfidence(final Haplotype refHaplotype,
@@ -103,22 +202,51 @@ public class SomaticReferenceConfidenceModel{
             final int offset = curPos.getStart() - refSpan.getStart();
 
             final VariantContext overlappingSite = getOverlappingVariantContext(curPos, variantCalls);
-            final List<VariantContext> currentPriors = getMatchingPriors(curPos, overlappingSite, VCpriors);
             if ( overlappingSite != null && overlappingSite.getStart() == curPos.getStart() ) {
-                if (applyPriors) {
-                    results.add(PosteriorProbabilitiesUtils.calculatePosteriorProbs(overlappingSite, currentPriors,
-                            numRefSamplesForPrior, options));
-                }
-                else {
                     results.add(overlappingSite);
-                }
             } else {
                 // otherwise emit a reference confidence variant context
-                results.add(makeReferenceConfidenceVariantContext(ploidy, ref, sampleName, globalRefOffset, pileup, curPos, offset, applyPriors, currentPriors));
+                results.add(makeReferenceConfidenceVariantContext(ploidy, ref, sampleName, globalRefOffset, pileup, curPos, offset, readLikelihoods));
             }
         }
 
         return results;
+    }
+
+    public VariantContext makeReferenceConfidenceVariantContext(final int ploidy,
+                                                                final byte[] ref,
+                                                                final String sampleName,
+                                                                final int globalRefOffset,
+                                                                final ReadPileup pileup,
+                                                                final Locatable curPos,
+                                                                final int offset,
+                                                                final ReadLikelihoods readLikelihoods) {
+        // Assume infinite population on a single sample.
+        final int refOffset = offset + globalRefOffset;
+        final byte refBase = ref[refOffset];
+        final SomaticRefVsAnyResult result = calcGenotypeLikelihoodsOfRefVsAny(ploidy, pileup, refBase, (byte)6, null, true);
+
+        final Allele refAllele = Allele.create(refBase, true);
+        final List<Allele> refSiteAlleles = Arrays.asList(refAllele, Allele.NON_REF_ALLELE);
+        final VariantContextBuilder vcb = new VariantContextBuilder("HC", curPos.getContig(), curPos.getStart(), curPos.getStart(), refSiteAlleles);
+        final GenotypeBuilder gb = new GenotypeBuilder(sampleName, GATKVariantContextUtils.homozygousAlleleList(refAllele, ploidy));
+        gb.AD(result.getAD());
+        gb.DP(result.getDP());
+
+        // genotype likelihood calculation
+        //final int nIndelInformativeReads = calcNIndelInformativeReads(pileup, refOffset, ref, indelInformativeDepthIndelSize);
+        //final Double indelLod =
+
+        // now that we have the SNP and indel GLs, we take the one with the least confidence,
+        // as this is the most conservative estimate of our certainty that we are hom-ref.
+        // For example, if the SNP PLs are 0,10,100 and the indel PLs are 0,100,1000
+        // we are very certain that there's no indel here, but the SNP confidence imply that we are
+        // far less confident that the ref base is actually the only thing here.  So we take 0,10,100
+        // as our GLs for the site.
+        gb.attribute(GATKVCFConstants.TUMOR_LOD_KEY, result.lods.get(Allele.NON_REF_ALLELE));
+
+
+        return vcb.genotypes(gb.make()).make();
     }
 
 }

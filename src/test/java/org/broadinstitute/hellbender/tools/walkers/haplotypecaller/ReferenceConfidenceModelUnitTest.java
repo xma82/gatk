@@ -1,7 +1,6 @@
 package org.broadinstitute.hellbender.tools.walkers.haplotypecaller;
 
 import com.google.common.base.Strings;
-import htsjdk.samtools.Cigar;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.variant.variantcontext.*;
@@ -237,7 +236,7 @@ public final class ReferenceConfidenceModelUnitTest extends GATKBaseTest {
 
     private void checkOverlapping(final int pos, Collection<VariantContext> calls, final VariantContext expected) {
         final GenomeLoc loc = parser.createGenomeLoc(parser.getSequenceDictionary().getSequences().get(0).getSequenceName(), pos, pos);
-        final VariantContext actual = model.getOverlappingVariantContext(loc, calls);
+        final VariantContext actual = GATKVariantContextUtils.getOverlappingVariantContext(loc, calls);
         Assert.assertEquals(actual, expected);
     }
 
@@ -409,8 +408,8 @@ public final class ReferenceConfidenceModelUnitTest extends GATKBaseTest {
 
         for ( int i = 0; i < loc.size(); i++ ) {
             final GenomeLoc curPos = parser.createGenomeLoc(loc.getContig(), loc.getStart() + i);
-            final VariantContext call = model.getOverlappingVariantContext(curPos, calls);
-            final VariantContext refModel = model.getOverlappingVariantContext(curPos, contexts);
+            final VariantContext call = GATKVariantContextUtils.getOverlappingVariantContext(curPos, calls);
+            final VariantContext refModel = GATKVariantContextUtils.getOverlappingVariantContext(curPos, contexts);
 
             if ( ! data.getActiveRegion().getSpan().contains(curPos) ) {
                 // part of the extended interval, but not the full interval
