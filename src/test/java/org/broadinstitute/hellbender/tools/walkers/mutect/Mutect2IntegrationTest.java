@@ -533,6 +533,18 @@ public class Mutect2IntegrationTest extends CommandLineProgramTest {
                 "-O", unfilteredVcf.getAbsolutePath(),
                 "-ERC", "GVCF");
         runCommandLine(args);
+
+        final List<VariantContext> variants = VariantContextTestUtils.streamVcf(unfilteredVcf).collect(Collectors.toList());
+        final Set<String> variantKeys = variants.stream().map(vc -> keyForVariant(vc)).collect(Collectors.toSet());
+
+        final List<String> expectedKeys = Arrays.asList(
+                "chrM:152-152 [T*, C]",
+                "chrM:263-263 [A*, G]",
+                "chrM:301-301 [A*, AC]",
+                "chrM:302-302 [A*, AC, C, ACC]",
+                "chrM:310-310 [T*, TC]",
+                "chrM:750-750 [A*, G]");
+        Assert.assertTrue(expectedKeys.stream().allMatch(variantKeys::contains));
     }
 
    @Test
