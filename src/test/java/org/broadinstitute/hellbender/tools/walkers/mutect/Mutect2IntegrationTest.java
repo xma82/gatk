@@ -520,6 +520,21 @@ public class Mutect2IntegrationTest extends CommandLineProgramTest {
         Assert.assertTrue(expectedKeys.stream().allMatch(variantKeys::contains));
     }
 
+    @Test
+    public void testMitochondrialRefConf() throws Exception {
+        Utils.resetRandomGenerator();
+        final File unfilteredVcf = createTempFile("unfiltered", ".vcf");
+
+        final List<String> args = Arrays.asList("-I", NA12878_MITO_BAM.getAbsolutePath(),
+                "-" + M2ArgumentCollection.TUMOR_SAMPLE_SHORT_NAME, "NA12878",
+                "-R", MITO_REF.getAbsolutePath(),
+                "-L", "chrM:1-1000",
+                "-min-pruning", "5",
+                "-O", unfilteredVcf.getAbsolutePath(),
+                "-ERC", "GVCF");
+        runCommandLine(args);
+    }
+
    @Test
    @SuppressWarnings("deprecation")
    public void testAFfromADoverHighDP() throws Exception {

@@ -116,7 +116,7 @@ public class SomaticReferenceConfidenceModel {
         final SomaticRefVsAnyResult result = new SomaticRefVsAnyResult();
         Map<String, List<GATKRead>> perSampleReadMap = new HashMap<>();
         perSampleReadMap.put(samples.getSample(0), pileup.getReads());
-        ReadLikelihoods readLikelihoods = new ReadLikelihoods(samples, new IndexedAlleleList(Arrays.asList(Allele.create(refBase), Allele.NON_REF_ALLELE)), perSampleReadMap);
+        ReadLikelihoods readLikelihoods = new ReadLikelihoods(samples, new IndexedAlleleList(Arrays.asList(Allele.create(refBase,true), Allele.NON_REF_ALLELE)), perSampleReadMap);
         for (int i = 0; i < pileup.size(); i++) {
             final PileupElement element = pileup.iterator().next();
             final boolean isAlt = readsWereRealigned ? isAltAfterAssembly(element, refBase) : isAltBeforeAssembly(element, refBase);
@@ -131,8 +131,7 @@ public class SomaticReferenceConfidenceModel {
                 nonRefLikelihood = QualityUtils.qualToErrorProbLog10(qual) + MathUtils.LOG10_ONE_THIRD;
                 result.refDepth++;
             }
-            readLikelihoods.sampleMatrix(0).set(0, i, referenceLikelihood);
-            readLikelihoods.sampleMatrix(0).set(1, i, referenceLikelihood);
+            readLikelihoods.sampleMatrix(0).set(0, i, nonRefLikelihood);
         }
         result.lods = genotypingEngine.somaticLog10Odds(readLikelihoods.sampleMatrix(0));
         return result;

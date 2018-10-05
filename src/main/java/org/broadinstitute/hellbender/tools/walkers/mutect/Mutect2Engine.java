@@ -123,7 +123,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         haplotypeBAMWriter = AssemblyBasedCallerUtils.createBamWriter(MTAC, createBamOutIndex, createBamOutMD5, header);
         trimmer.initialize(MTAC.assemblyRegionTrimmerArgs, header.getSequenceDictionary(), MTAC.debug,
                 MTAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES, false);
-        referenceConfidenceModel = new SomaticReferenceConfidenceModel();  //TODO: do something classier with the indel size arg
+        referenceConfidenceModel = new SomaticReferenceConfidenceModel(samplesList, header, 0, genotypingEngine);  //TODO: do something classier with the indel size arg
     }
 
     //default M2 read filters.  Cheap ones come first in order to fail fast.
@@ -174,6 +174,9 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         headerInfo.add(new VCFHeaderLine(TUMOR_SAMPLE_KEY_IN_VCF_HEADER, tumorSample));
         if (hasNormal()) {
             headerInfo.add(new VCFHeaderLine(NORMAL_SAMPLE_KEY_IN_VCF_HEADER, normalSample));
+        }
+        if (emitReferenceConfidence()) {
+            headerInfo.add(GATKVCFHeaderLines.getFormatLine(GATKVCFConstants.TUMOR_LOD_KEY));
         }
 
         final VCFHeader vcfHeader = new VCFHeader(headerInfo, samplesList.asListOfSamples());
@@ -327,7 +330,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         final List<Haplotype> haplotypes = Collections.singletonList(refHaplotype);
         return referenceConfidenceModel.calculateRefConfidence(refHaplotype, haplotypes,
                 paddedLoc, region, AssemblyBasedCallerUtils.createDummyStratifiedReadMap(refHaplotype, samplesList, header, region),
-                new HomogeneousPloidyModel(samplesList, 0), Collections.emptyList(), false, null); //TODO: clean up args
+                new HomogeneousPloidyModel(samplesList, 2), Collections.emptyList(), false, null); //TODO: clean up args
     }
 
     private static int getCurrentOrFollowingIndelLength(final PileupElement pe) {
