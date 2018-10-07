@@ -810,8 +810,14 @@ public final class GenomicsDBImportIntegrationTest extends CommandLineProgramTes
         ObjectMapper objectMapper = new ObjectMapper();
         myMap = objectMapper.readValue(mapData, new TypeReference<HashMap<String, String>>() {});
         myMap.forEach((key, value) -> {
-                System.out.println("Key=" + key);
+            if (key.equals("type"))
+                System.out.println("Key=" + key + " Value=" + value);
+            else
+                    System.out.println("Key=" + key);
         });
+	System.out.println("DONE - HELLBENDER_PROJ=" + System.getenv("HELLBENDER_TEST_PROJECT"));
+
+        helpDebugAuthError();
 	
 	final String workspace = BucketUtils.randomRemotePath(getGCPTestStaging(), "", "") + "/";
  	
