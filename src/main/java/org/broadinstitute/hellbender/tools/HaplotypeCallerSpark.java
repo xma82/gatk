@@ -1,9 +1,6 @@
 package org.broadinstitute.hellbender.tools;
 
-import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.IOUtil;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -13,23 +10,17 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.broadinstitute.barclay.argparser.*;
-import org.broadinstitute.barclay.argparser.Advanced;
-import org.broadinstitute.barclay.argparser.Argument;
-import org.broadinstitute.barclay.argparser.ArgumentCollection;
-import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.barclay.help.DocumentedFeature;
-import org.broadinstitute.hellbender.cmdline.*;
+import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.cmdline.programgroups.ShortVariantDiscoveryProgramGroup;
 import org.broadinstitute.hellbender.engine.*;
-import org.broadinstitute.hellbender.engine.spark.datasources.ReferenceMultiSparkSource;
 import org.broadinstitute.hellbender.engine.filters.ReadFilter;
 import org.broadinstitute.hellbender.engine.spark.GATKSparkTool;
-import org.broadinstitute.hellbender.engine.ShardToMultiIntervalShardAdapter;
 import org.broadinstitute.hellbender.engine.spark.SparkSharder;
 import org.broadinstitute.hellbender.engine.spark.datasources.VariantsSparkSink;
-import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
-import org.broadinstitute.hellbender.tools.walkers.annotator.*;
+import org.broadinstitute.hellbender.tools.walkers.annotator.Annotation;
+import org.broadinstitute.hellbender.tools.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCaller;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCallerArgumentCollection;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCallerEngine;
@@ -42,13 +33,15 @@ import org.broadinstitute.hellbender.utils.downsampling.ReadsDownsampler;
 import org.broadinstitute.hellbender.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
-import org.broadinstitute.hellbender.utils.reference.ReferenceBases;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -340,73 +333,4 @@ public final class HaplotypeCallerSpark extends GATKSparkTool {
                     .map(a -> new Tuple2<>(a, shard.getIntervals().get(0)));
         };
     }
-
-    /**
-     * Adapter to allow a 2bit reference to be used in HaplotypeCallerEngine.
-     * This is not intended as a general purpose adapter, it only enables the operations needed in {@link HaplotypeCallerEngine}
-     * This should not be used outside of this class except for testing purposes.
-     */
-    @VisibleForTesting
-    public static final class ReferenceMultiSourceAdapter implements ReferenceSequenceFile, ReferenceDataSource, Serializable{
-        private static final long serialVersionUID = 1L;
-
-        private final ReferenceMultiSparkSource source;
-        private final SAMSequenceDictionary sequenceDictionary;
-
-        public ReferenceMultiSourceAdapter(final ReferenceMultiSparkSource source) {
-            this.source = source;
-            sequenceDictionary = source.getReferenceSequenceDictionary(null);
-        }
-
-        @Override
-        public ReferenceSequence queryAndPrefetch(final String contig, final long start, final long stop) {
-           return getSubsequenceAt(contig, start, stop);
-        }
-
-        @Override
-        public SAMSequenceDictionary getSequenceDictionary() {
-            return source.getReferenceSequenceDictionary(null);
-        }
-
-        @Override
-        public ReferenceSequence nextSequence() {
-            throw new UnsupportedOperationException("nextSequence is not implemented");
-        }
-
-        @Override
-        public void reset() {
-            throw new UnsupportedOperationException("reset is not implemented");
-        }
-
-        @Override
-        public boolean isIndexed() {
-            return true;
-        }
-
-        @Override
-        public ReferenceSequence getSequence(final String contig) {
-            throw new UnsupportedOperationException("getSequence is not supported");
-        }
-
-        @Override
-        public ReferenceSequence getSubsequenceAt(final String contig, final long start, final long stop) {
-            try {
-                final ReferenceBases bases = source.getReferenceBases(new SimpleInterval(contig, (int) start, (int) stop));
-                return new ReferenceSequence(contig, sequenceDictionary.getSequenceIndex(contig), bases.getBases());
-            } catch (final IOException e) {
-                throw new GATKException(String.format("Failed to load reference bases for %s:%d-%d", contig, start, stop));
-            }
-        }
-
-        @Override
-        public void close() {
-            // doesn't do anything because you can't close a two-bit file
-        }
-
-        @Override
-        public Iterator<Byte> iterator() {
-            throw new UnsupportedOperationException("iterator is not supported");
-        }
-    }
-
 }

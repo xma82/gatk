@@ -19,7 +19,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCallerIntegrationTest;
@@ -186,15 +185,6 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
 
         final double concordance = HaplotypeCallerIntegrationTest.calculateConcordance(output, gatk3Output);
         Assert.assertTrue(concordance >= 0.99, "Concordance with GATK 3.8 in AS GVCF mode is < 99% (" +  concordance + ")");
-    }
-
-    @Test
-    public void testReferenceAdapterIsSerializable() throws IOException {
-        final ReferenceMultiSparkSource referenceMultiSource = new ReferenceMultiSparkSource(b37_reference_20_21, ReferenceWindowFunctions.IDENTITY_FUNCTION);
-        SparkTestUtils.roundTripInKryo(referenceMultiSource, ReferenceMultiSparkSource.class, SparkContextFactory.getTestSparkContext().getConf());
-        final HaplotypeCallerSpark.ReferenceMultiSourceAdapter adapter = new HaplotypeCallerSpark.ReferenceMultiSourceAdapter(referenceMultiSource);
-        SparkTestUtils.roundTripInKryo(adapter, HaplotypeCallerSpark.ReferenceMultiSourceAdapter.class, SparkContextFactory.getTestSparkContext().getConf());
-
     }
 
     @Test
