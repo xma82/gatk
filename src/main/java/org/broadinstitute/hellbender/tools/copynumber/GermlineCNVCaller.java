@@ -155,8 +155,6 @@ import java.util.stream.Collectors;
  * <pre>
  * gatk GermlineCNVCaller \
  *   --run-mode CASE \
- *   -L intervals.interval_list \
- *   --interval-merging-rule OVERLAPPING_ONLY \
  *   --contig-ploidy-calls path_to_contig_ploidy_calls \
  *   --model previous_model_path \
  *   --input normal_1.counts.hdf5 \

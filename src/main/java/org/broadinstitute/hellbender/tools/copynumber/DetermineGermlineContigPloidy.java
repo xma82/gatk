@@ -301,6 +301,10 @@ public final class DetermineGermlineContigPloidy extends CommandLineProgram {
                 throw new UserException.BadInput("Invalid combination of inputs: Running in case mode, " +
                         "but contig-ploidy priors were provided.");
             }
+            if (intervalArgumentCollection.intervalsSpecified()) {
+                throw new UserException.BadInput("Invalid combination of inputs: Running in CASE mode, " +
+                        "but intervals were provided.");
+            }
             //intervals are retrieved from the input model directory
             specifiedIntervalsFile = new File(inputModelDir, INPUT_MODEL_INTERVAL_FILE);
             IOUtils.canReadFile(specifiedIntervalsFile);
