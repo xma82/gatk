@@ -377,6 +377,7 @@ task DetermineGermlineContigPloidyCohortMode {
             ${"-L " + intervals} \
             --input ${sep=" --input " read_count_files} \
             --contig-ploidy-priors ${contig_ploidy_priors} \
+            --interval-merging-rule OVERLAPPING_ONLY \
             --output ${output_dir_} \
             --output-prefix ${cohort_entity_id} \
             --verbosity DEBUG \
