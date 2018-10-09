@@ -228,6 +228,7 @@ workflow CNVGermlineCohortWorkflow {
     call DetermineGermlineContigPloidyCohortMode {
         input:
             cohort_entity_id = cohort_entity_id,
+            intervals = FilterIntervals.filtered_intervals,
             read_count_files = CollectCounts.counts,
             contig_ploidy_priors = contig_ploidy_priors,
             gatk4_jar_override = gatk4_jar_override,
@@ -337,6 +338,7 @@ workflow CNVGermlineCohortWorkflow {
 
 task DetermineGermlineContigPloidyCohortMode {
     String cohort_entity_id
+    File? intervals
     Array[File] read_count_files
     File contig_ploidy_priors
     String? output_dir
@@ -372,6 +374,7 @@ task DetermineGermlineContigPloidyCohortMode {
         export OMP_NUM_THREADS=${default=8 cpu}
 
         gatk --java-options "-Xmx${command_mem_mb}m"  DetermineGermlineContigPloidy \
+            ${"-L " + intervals} \
             --input ${sep=" --input " read_count_files} \
             --contig-ploidy-priors ${contig_ploidy_priors} \
             --output ${output_dir_} \
