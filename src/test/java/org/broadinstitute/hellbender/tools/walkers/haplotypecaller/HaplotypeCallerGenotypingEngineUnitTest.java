@@ -163,7 +163,7 @@ public final class HaplotypeCallerGenotypingEngineUnitTest extends GATKBaseTest 
         }
         Allele altAllele = null;
         for (final Allele allele : updatedVc.getAlleles())
-            if (allele.isSymbolic() && allele.getBaseString().equals(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE_NAME))
+            if (allele.isSymbolic() && allele.getBaseString().equals(Allele.NON_REF_STRING))
                 altAllele = allele;
         Assert.assertNotNull(altAllele);
     }

@@ -158,7 +158,7 @@ public final class ReferenceConfidenceModelUnitTest extends GATKBaseTest {
     public void testGetHeaderLines() throws Exception {
         final Set<VCFHeaderLine> vcfHeaderLines = model.getVCFHeaderLines();
         Assert.assertEquals(vcfHeaderLines.size(), 1);
-        Assert.assertEquals(vcfHeaderLines.iterator().next(), new VCFSimpleHeaderLine(GATKVCFConstants.SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG, GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE_NAME, "Represents any possible alternative allele at this location"));
+        Assert.assertEquals(vcfHeaderLines.iterator().next(), new VCFSimpleHeaderLine(GATKVCFConstants.SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG, Allele.NON_REF_STRING, "Represents any possible alternative allele at this location"));
     }
 
     @Test

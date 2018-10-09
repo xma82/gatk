@@ -191,7 +191,7 @@ public final class ReferenceConfidenceModel {
      */
     public Set<VCFHeaderLine> getVCFHeaderLines() {
         final Set<VCFHeaderLine> headerLines = new LinkedHashSet<>();
-        headerLines.add(new VCFSimpleHeaderLine(GATKVCFConstants.SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG, GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE_NAME, "Represents any possible alternative allele at this location"));
+        headerLines.add(new VCFSimpleHeaderLine(GATKVCFConstants.SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG, Allele.NON_REF_STRING, "Represents any possible alternative allele at this location"));
         return headerLines;
     }
 
