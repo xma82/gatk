@@ -152,7 +152,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
 
     public void writeHeader(final VariantContextWriter vcfWriter, final Set<VCFHeaderLine> defaultToolHeaderLines) {
         final Set<VCFHeaderLine> headerInfo = new HashSet<>();
-        headerInfo.add(new VCFHeaderLine("Mutect Version", MUTECT_VERSION));
+        headerInfo.add(new VCFHeaderLine("MutectVersion", MUTECT_VERSION));
         headerInfo.add(new VCFHeaderLine(Mutect2FilteringEngine.FILTERING_STATUS_VCF_KEY, "Warning: unfiltered Mutect 2 calls.  Please run " + FilterMutectCalls.class.getSimpleName() + " to remove false positives."));
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions(false));
         headerInfo.addAll(defaultToolHeaderLines);
@@ -190,7 +190,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         final AssemblyRegion assemblyActiveRegion = AssemblyBasedCallerUtils.assemblyRegionWithWellMappedReads(originalAssemblyRegion, READ_QUALITY_FILTER_THRESHOLD, header);
         final AssemblyResultSet untrimmedAssemblyResult = AssemblyBasedCallerUtils.assembleReads(assemblyActiveRegion, givenAlleles, MTAC, header, samplesList, logger, referenceReader, assemblyEngine, aligner);
         final SortedSet<VariantContext> allVariationEvents = untrimmedAssemblyResult.getVariationEvents(MTAC.maxMnpDistance);
-        final AssemblyRegionTrimmer.Result trimmingResult = trimmer.trim(originalAssemblyRegion,allVariationEvents);
+        final AssemblyRegionTrimmer.Result trimmingResult = trimmer.trim(originalAssemblyRegion, allVariationEvents);
         if (!trimmingResult.isVariationPresent()) {
             return NO_CALLS;
         }
@@ -245,6 +245,7 @@ public final class Mutect2Engine implements AssemblyRegionEvaluator {
         likelihoodCalculationEngine.close();
         aligner.close();
         haplotypeBAMWriter.ifPresent(writer -> writer.close());
+        referenceReader.close();
     }
 
     @Override

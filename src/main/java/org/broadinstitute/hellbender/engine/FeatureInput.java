@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.barclay.argparser.CommandLineException;
+import org.broadinstitute.hellbender.tools.genomicsdb.GenomicsDBUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
 
@@ -24,6 +25,9 @@ import java.util.Map;
  * DO NOT ATTEMPT TO INSTANTIATE THIS CLASS DIRECTLY! FeatureInputs must be instantiated by the argument-parsing
  * system only in order to be recognized by the Feature management system. This is why the constructor is
  * marked as protected.
+ *
+ * If you still want to instantiate this class directly, you will have to call {@link GATKTool#addFeatureInputsAfterInitialization(String, String, Class, int)}
+ *  in order to register the FeatureInput with the engine.
  *
  * FeatureInputs can be assigned logical names on the command line using the syntax:
  *

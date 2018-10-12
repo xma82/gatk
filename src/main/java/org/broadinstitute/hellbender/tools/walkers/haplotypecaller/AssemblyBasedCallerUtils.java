@@ -20,12 +20,14 @@ import org.broadinstitute.hellbender.utils.genotyper.SampleList;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
 import org.broadinstitute.hellbender.utils.haplotype.HaplotypeBAMWriter;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
-import org.broadinstitute.hellbender.utils.read.*;
+import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
+import org.broadinstitute.hellbender.utils.read.GATKRead;
+import org.broadinstitute.hellbender.utils.read.ReadCoordinateComparator;
+import org.broadinstitute.hellbender.utils.read.ReadUtils;
 import org.broadinstitute.hellbender.utils.smithwaterman.SmithWatermanAligner;
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -62,7 +64,8 @@ public final class AssemblyBasedCallerUtils {
                                       final boolean dontUseSoftClippedBases,
                                       final byte minTailQuality,
                                       final SAMFileHeader readsHeader,
-                                      final SampleList samplesList) {
+                                      final SampleList samplesList,
+                                      final boolean correctOverlappingBaseQualities) {
         if ( region.isFinalized() ) {
             return;
         }
@@ -96,7 +99,7 @@ public final class AssemblyBasedCallerUtils {
         Collections.sort(readsToUse, new ReadCoordinateComparator(readsHeader)); // TODO: sort may be unnecessary here
 
         // handle overlapping read pairs from the same fragment
-        cleanOverlappingReadPairs(readsToUse, samplesList, readsHeader);
+        cleanOverlappingReadPairs(readsToUse, samplesList, readsHeader, correctOverlappingBaseQualities);
 
         region.clearReads();
         region.addAll(readsToUse);
@@ -107,12 +110,14 @@ public final class AssemblyBasedCallerUtils {
      * Clean up reads/bases that overlap within read pairs
      *
      * @param reads the list of reads to consider
+     * @param correctOverlappingBaseQualities
      */
-    private static void cleanOverlappingReadPairs(final List<GATKRead> reads, final SampleList samplesList, final SAMFileHeader readsHeader) {
+    private static void cleanOverlappingReadPairs(final List<GATKRead> reads, final SampleList samplesList, final SAMFileHeader readsHeader,
+                                                  final boolean correctOverlappingBaseQualities) {
         for ( final List<GATKRead> perSampleReadList : splitReadsBySample(samplesList, readsHeader, reads).values() ) {
             final FragmentCollection<GATKRead> fragmentCollection = FragmentCollection.create(perSampleReadList);
             for ( final List<GATKRead> overlappingPair : fragmentCollection.getOverlappingPairs() ) {
-                FragmentUtils.adjustQualsOfOverlappingPairedFragments(overlappingPair);
+                FragmentUtils.adjustQualsOfOverlappingPairedFragments(overlappingPair, correctOverlappingBaseQualities);
             }
         }
     }
@@ -147,12 +152,8 @@ public final class AssemblyBasedCallerUtils {
     }
 
     public static CachingIndexedFastaSequenceFile createReferenceReader(final String reference) {
-        try {
-            // fasta reference reader to supplement the edges of the reference sequence
-            return new CachingIndexedFastaSequenceFile(IOUtils.getPath(reference));
-        } catch( FileNotFoundException e ) {
-            throw new UserException.CouldNotReadInputFile(IOUtils.getPath(reference), e);
-        }
+        // fasta reference reader to supplement the edges of the reference sequence
+        return new CachingIndexedFastaSequenceFile(IOUtils.getPath(reference));
     }
 
     /**
@@ -240,7 +241,7 @@ public final class AssemblyBasedCallerUtils {
                                                   final ReferenceSequenceFile referenceReader,
                                                   final ReadThreadingAssembler assemblyEngine,
                                                   final SmithWatermanAligner aligner){
-        finalizeRegion(region, argumentCollection.errorCorrectReads, argumentCollection.dontUseSoftClippedBases, (byte)(argumentCollection.minBaseQualityScore - 1), header, sampleList);
+        finalizeRegion(region, argumentCollection.errorCorrectReads, argumentCollection.dontUseSoftClippedBases, (byte)(argumentCollection.minBaseQualityScore - 1), header, sampleList, ! argumentCollection.doNotCorrectOverlappingBaseQualities);
         if( argumentCollection.debug) {
             logger.info("Assembling " + region.getSpan() + " with " + region.size() + " reads:    (with overlap region = " + region.getExtendedSpan() + ")");
         }

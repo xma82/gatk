@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.testutils;
 
 import htsjdk.samtools.util.Locatable;
 import org.broadinstitute.hellbender.tools.genomicsdb.GenomicsDBImport;
+import org.broadinstitute.hellbender.tools.genomicsdb.GenomicsDBUtils;
 import org.broadinstitute.hellbender.utils.IntervalUtils;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
 
