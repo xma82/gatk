@@ -291,16 +291,6 @@ public final class VariantContextTestUtils {
         Assert.assertEquals(actual.hasDP(), expected.hasDP(), "Genotype hasDP");
         Assert.assertEquals(actual.getDP(), expected.getDP(), "Genotype dp");
         Assert.assertEquals(actual.hasAD(), expected.hasAD(), "Genotype hasAD");
-        
-	if (actual.hasAD()) {
-        int[] actual_ad = actual.getAD();
-        int[] expected_ad = expected.getAD();
-	System.out.println("Lengths actual=" + actual_ad.length + " expected=" + expected_ad.length);
-        for (int i=0; i< actual_ad.length; i++) {
-            System.out.println("index=" + i + " Actual AD=" + actual_ad[i] + " Expected AD=" + expected_ad[i]);
-        }
-	}
-
         Assert.assertEquals(actual.getAD(), expected.getAD(), "Genotype AD");
         Assert.assertEquals(actual.hasGQ(), expected.hasGQ(), "Genotype hasGQ");
         Assert.assertEquals(actual.getGQ(), expected.getGQ(), "Genotype gq");
