@@ -844,48 +844,6 @@ public final class GenomicsDBImportIntegrationTest extends CommandLineProgramTes
         writeToGenomicsDB(LOCAL_GVCFS, INTERVAL, workspace, 0, false, 0, 1);
     }
 
-    @Test(groups = {"bucket"})
-    public void testDebugGenomicsDBSupport() throws IOException {
-        String creds = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-        Assert.assertNotNull(creds);
-        System.out.println("GOOG_CRED= " + creds);
-
-        String hellbender_creds = System.getenv("HELLBENDER_JSON_SERVICE_ACCOUNT_KEY");
-        Assert.assertNotNull(hellbender_creds);
-        System.out.print("HELLBENDER_CRED=" + hellbender_creds);
-
-        if (new File(creds).getAbsolutePath().equals(new File(hellbender_creds).getAbsolutePath())) {
-            System.out.println("Both creds identical");
-        } else {
-            System.out.println("creds:"+new File(creds).getAbsolutePath());
-            System.out.println("hellbender_creds:"+new File(hellbender_creds).getAbsolutePath());
-        }
-
-        byte[] mapData = Files.readAllBytes(IOUtils.getPath(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")));
-        HashMap<String, String> myMap = new HashMap<String, String>();
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        myMap = objectMapper.readValue(mapData, new TypeReference<HashMap<String, String>>() {});
-        myMap.forEach((key, value) -> {
-            if (key.equals("type"))
-                System.out.println("Key=" + key + " Value=" + value);
-            else
-                    System.out.println("Key=" + key);
-        });
-	System.out.println("DONE - HELLBENDER_PROJ=" + System.getenv("HELLBENDER_TEST_PROJECT"));
-
-        helpDebugAuthError();
-
-	final String workspace = BucketUtils.randomRemotePath(getGCPTestStaging(), "", "") + "/";
-
-	int rc = GenomicsDBUtils.createTileDBWorkspace(workspace, false);
-	if (rc == 0) {
-		System.out.println("GenomicsDBUtils.createTileDBWorkspace returned successfully " + workspace);
-	} else {
-		System.out.println("GenomicsDBUtils.createTileDBWorkspace FAILED " + workspace);
-	}
-    }
-
     /*@Test(groups = {"bucket"})
     public void testWriteToAndQueryFromGCS() throws IOException {
         final String workspace = BucketUtils.randomRemotePath(getGCPTestStaging(), "", "") + "/";
